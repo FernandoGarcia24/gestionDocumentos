@@ -1,0 +1,158 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+<div class="container mt-5">
+
+    {% if messages %}
+    <div class="mt-3">
+        {% for message in messages %}
+        <div class="alert {{ message.tags }}" role="alert">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {{ error }}
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th scope="col">Título</th>
+                    <th scope="col">Descripción</th>
+                    <th scope="col">Acciones</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Asignado a</th>
+                    <th scope="col">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for document in documents %}
+                <tr>
+                    <td class="font-weight-bold">{{ document.title }}</td>
+                    <td class="font-weight-bold">{{ document.description }}</td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'document_preview' document.pk %}" class="btn btn-outline-secondary btn-sm mx-1" target="_blank">Vista Previa</a>
+                            {% if document.uploaded_by == request.user %}
+                            <a href="{% url 'document_edit' document.pk %}" class="btn btn-outline-primary btn-sm mx-1">Editar</a>
+                            <form method="post" action="{% url 'document_delete' document.pk %}" onsubmit="return confirm('¿Estás seguro de eliminar este documento? Esta acción no se puede deshacer.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if document.approval_message %}
+                        <span class="badge bg-info">{{ document.approval_message }}</span>
+                        {% endif %}
+                        {% if document.approved %}
+                        <span class="badge bg-success">Aprobado</span>
+                        {% elif document.rejected %}
+                        <span class="badge bg-danger">Rechazado</span>
+                        {% else %}
+                        <span class="font-weight-bold">Sin aprobar</span>
+                        {% endif %}
+                    </td>
+                    <td class="font-weight-bold">
+                        {{ document.approver }}
+                    </td>
+                    <td>
+                        {% if document.approver == request.user %}
+                            {% if not document.approved and not document.rejected %}
+                                <form method="POST" action="{% url 'approve_document' document.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="approval_status" value="approve">
+                                    <button type="submit" class="btn btn-success btn-sm">Aprobar</button>
+                                </form>
+                                <form method="POST" action="{% url 'approve_document' document.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="approval_status" value="reject">
+                                    <button type="submit" class="btn btn-warning btn-sm">Rechazar</button>
+                                </form>
+                            {% else %}
+                                {% if document.approved %}
+                                <span class="badge bg-success">Aprobado</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Rechazado</span>
+                                {% endif %}
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">No asignado</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No has subido documentos aún.</td>
+                </tr>
+                {% endfor %}
+
+                {% for document in documentsAssigned %}
+                <tr>
+                    <td class="font-weight-bold">{{ document.title }}</td>
+                    <td class="font-weight-bold">{{ document.description }}</td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'document_preview' document.pk %}" class="btn btn-outline-secondary btn-sm mx-1" target="_blank">Vista Previa</a>
+                            {% if document.uploaded_by == request.user %}
+                            <a href="{% url 'document_edit' document.pk %}" class="btn btn-outline-primary btn-sm mx-1">Editar</a>
+                            <form method="post" action="{% url 'document_delete' document.pk %}" onsubmit="return confirm('¿Estás seguro de eliminar este documento? Esta acción no se puede deshacer.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if document.approval_message %}
+                        <span class="badge bg-info">{{ document.approval_message }}</span>
+                        {% endif %}
+                        {% if document.approved %}
+                        <span class="badge bg-success">Aprobado</span>
+                        {% elif document.rejected %}
+                        <span class="badge bg-danger">Rechazado</span>
+                        {% else %}
+                        <span class="font-weight-bold">Sin aprobar</span>
+                        {% endif %}
+                    </td>
+                    <td class="font-weight-bold">
+                        {{ document.approver }}
+                    </td>
+                    <td>
+                        {% if document.approver == request.user %}
+                            {% if not document.approved and not document.rejected %}
+                                <form method="POST" action="{% url 'approve_document' document.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="approval_status" value="approve">
+                                    <button type="submit" class="btn btn-success btn-sm">Aprobar</button>
+                                </form>
+                                <form method="POST" action="{% url 'approve_document' document.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="approval_status" value="reject">
+                                    <button type="submit" class="btn btn-warning btn-sm">Rechazar</button>
+                                </form>
+                            {% else %}
+                                {% if document.approved %}
+                                <span class="badge bg-success">Aprobado</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Rechazado</span>
+                                {% endif %}
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">No asignado</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No tienes documentos asignados para revisión.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}
