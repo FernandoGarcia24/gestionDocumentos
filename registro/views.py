@@ -27,14 +27,12 @@ def signup(request):
                 user = User.objects.create_user(username=request.POST['username'], 
                 email=request.POST['email'], password=request.POST['password1'])
                 user.save() 
-                login(request, user)
                 return redirect('/signin')
             except IntegrityError:
-                    form = CustomUserCreationForm()
-                    form.add_error('username', 'El usuario ya existe')
-                    return render(request, 'signup.html', 
-                            {'form': form})
-                    
+                return render(request, 'signin.html', {
+                            'form': CustomUserCreationForm,        
+                            'error': 'El usuario ya existe'
+                            })       
         form = CustomUserCreationForm()  
         form.add_error('password2', 'Las contraseñas no coinciden')
         return render(request, 'signup.html', 
@@ -79,7 +77,7 @@ def signin(request):
         return render(request, 'signin.html', {
             'form': AuthenticationForm
         })
-    else: 
+    else:
         print(request)
         user = authenticate(
             request, username=request.POST['username'], password=request.POST['password'] 
@@ -87,6 +85,7 @@ def signin(request):
         print(user)
         if user is None:
             return render(request, 'signin.html', {
+                'form': AuthenticationForm,        
                 'error': 'Usuario o contraeña incorrecta'
             })
         else:
