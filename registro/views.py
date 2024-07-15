@@ -69,28 +69,33 @@ def add_class(field, css_class):
 
 def home(request):
     form = CustomUserCreationForm()
-    return render(request, 'home.html', {'form': form})
-    
+    return render(request, 'home.html', {'form': form})    
 
 def signin(request):
-    if request.method == 'GET':
-        return render(request, 'signin.html', {
-            'form': AuthenticationForm
-        })
-    else:
-        print(request)
-        user = authenticate(
-            request, username=request.POST['username'], password=request.POST['password'] 
-        )
-        print(user)
-        if user is None:
-            return render(request, 'signin.html', {
-                'form': AuthenticationForm,        
-                'error': 'Usuario o contraeña incorrecta'
-            })
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            email = form.cleaned_data.get('username')  # Obtén el correo electrónico del formulario
+            password = form.cleaned_data.get('password')
+            user = authenticate(request, username=email, password=password)
+
+            if user is not None:
+                login(request, user)
+                return redirect('document_list')  # Redirige a la página deseada después de iniciar sesión
+            else:
+                return render(request, 'signin.html', {
+                    'form': form,
+                    'error': 'Correo electrónico o contraseña incorrectos'
+                })
         else:
-            login(request, user)
-            return redirect('document_list')
+            return render(request, 'signin.html', {
+                'form': form,
+                'error': 'Correo electrónico o contraseña incorrectos'
+            })
+    else:
+        form = AuthenticationForm()
+
+    return render(request, 'signin.html', {'form': form})
 
 def document_preview(request, document_id):
     document = get_object_or_404(Document, pk=document_id)

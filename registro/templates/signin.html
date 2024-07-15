@@ -8,13 +8,17 @@
                 <div class="card-body">
                     <h1 class="card-title text-center mb-4">Iniciar Sesión</h1>
                     
-                        <p class="mb-4" style="color: red;">{{ error }}</p>
+                    {% if error %}
+                    <div id="error-message" class="alert alert-danger">
+                        <p>{{ error }}</p>
+                    </div>
+                    {% endif %}
                    
                     <form method="post" class="needs-validation">
                         {% csrf_token %}
                         <div class="form-group mb-3">
-                            <label for="username">Usuario</label>
-                            <input type="text" name="username" id="username" class="form-control" placeholder="Ingresa el usuario" required>
+                            <label for="username">Correo electrónico</label>
+                            <input type="email" name="username" id="username" class="form-control" placeholder="Ingresa el Correo electrónico" required>
                         </div>
 
                         <div class="form-group mb-3">
@@ -23,7 +27,7 @@
                         </div>
 
                         <div class="d-flex justify-content-center mb-3">
-                            <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+                            <button type="submit" class="btn btn-primary w-50">Iniciar Sesión</button>
                         </div>
 
                         <div class="text-left">

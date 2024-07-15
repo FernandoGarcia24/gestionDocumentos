@@ -95,10 +95,10 @@ DATABASES = {
 }
 
 
-# AUTHENTICATION_BACKENDS = [
-#     'django.contrib.auth.backends.ModelBackend',  # Backend predeterminado
-#     'registro.backends.EmailBackend',             # Tu backend personalizado
-# ]
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Backend predeterminado
+    'registro.backends.EmailBackend',             # Tu backend personalizado
+]
 
 
 # Password validation
