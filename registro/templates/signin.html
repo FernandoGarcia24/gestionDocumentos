@@ -14,7 +14,7 @@
                         {% csrf_token %}
                         <div class="form-group mb-3">
                             <label for="username">Username</label>
-                            <input type="text" name="username" id="username" class="form-control {% if form.username.errors %}is-invalid{% endif %}" placeholder="Ingresa el email" required>
+                            <input type="text" name="username" id="username" class="form-control {% if form.username.errors %}is-invalid{% endif %}" placeholder="Ingresa el usuario" required>
                             <div class="invalid-feedback">
                                 {% for error in form.username.errors %}
                                     <p>{{ error }}</p>
