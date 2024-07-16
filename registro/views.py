@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .models import Document
 from .forms import DocumentForm
+from .backends import EmailBackend
 from django.conf import settings
 from .models import Document
 from .forms import DocumentForm
@@ -16,28 +17,41 @@ register = template.Library()
 
 
 
-def signup(request):
 
-    if request.method == 'GET':
-        form = CustomUserCreationForm()
-        return render(request, 'signup.html', {'form': form})
-    else:
-        if request.POST['password1'] == request.POST['password2']:
+class CustomUserCreationForm(UserCreationForm):
+    email = forms.EmailField(required=True)
+
+    class Meta:
+        model = User
+        fields = ("username", "email", "password1", "password2")
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data["email"]
+        if commit:
+            user.save()
+        return user
+    
+    
+def signup(request):
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
             try:
-                user = User.objects.create_user(username=request.POST['username'], 
-                email=request.POST['email'], password=request.POST['password1'])
-                user.save() 
-                return redirect('/signin')
+                user = form.save()
+                backend = EmailBackend()
+                authenticated_user = backend.authenticate(request, username=user.email, password=form.cleaned_data['password1'])
+                if authenticated_user is not None:
+                   
+                    return redirect('signin')
+                else:
+                    return render(request, 'signup.html', {'form': form, 'error_message': 'No se pudo autenticar al usuario.'})
             except IntegrityError:
-                return render(request, 'signin.html', {
-                            'form': CustomUserCreationForm,        
-                            'error': 'El usuario ya existe'
-                            })       
-        form = CustomUserCreationForm()  
-        form.add_error('password2', 'Las contraseñas no coinciden')
-        return render(request, 'signup.html', 
-                        {'form': form})    
-  
+                form.add_error(None, 'El usuario ya existe')
+    else:
+        form = CustomUserCreationForm()
+    
+    return render(request, 'signup.html', {'form': form})   
   
 def sistemaGestion(request):
     return render(request, 'sistemagestion.html')
@@ -45,28 +59,11 @@ def sistemaGestion(request):
 def signout(request):
     logout(request)
     return redirect('signin')
-
-class CustomUserCreationForm(UserCreationForm):
-     
-    email = forms.EmailField(required=True)
-    
-    class Meta:
-        model = User
-        fields = ("username", "email", "password1", "password2")
-        
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.email = self.cleaned_data["email"]
-        if commit:
-            user.save()
-        return user
-
     
 @register.filter
 def add_class(field, css_class):
     return field.as_widget(attrs={'class': css_class})
     
-
 def home(request):
     form = CustomUserCreationForm()
     return render(request, 'home.html', {'form': form})    
@@ -75,13 +72,13 @@ def signin(request):
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
-            email = form.cleaned_data.get('username')  # Obtén el correo electrónico del formulario
+            email = form.cleaned_data.get('username')
             password = form.cleaned_data.get('password')
             user = authenticate(request, username=email, password=password)
 
             if user is not None:
                 login(request, user)
-                return redirect('document_list')  # Redirige a la página deseada después de iniciar sesión
+                return redirect('document_list')
             else:
                 return render(request, 'signin.html', {
                     'form': form,
@@ -137,7 +134,7 @@ def approve_document(request, document_id):
         document.save()
         
     if request.user.is_superuser:
-        return redirect('document_list')  # Redireccionar a la lista general de documentos pendientes
+        return redirect('document_list')
     else:
         return redirect('document_list')
 
