@@ -8,11 +8,9 @@
                 <div class="card-body">
                     <h1 class="card-title text-center mb-4">Registro</h1>
 
-                    {% if form.non_field_errors %}
+                    {% if error %}
                     <div class="alert alert-danger">
-                        {% for error in form.non_field_errors %}
                         <p>{{ error }}</p>
-                        {% endfor %}
                     </div>
                     {% endif %}
 

@@ -7,10 +7,9 @@ from django.db import IntegrityError
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .models import Document
-from .forms import DocumentForm
 from .backends import EmailBackend
+from django.core.exceptions import ValidationError
 from django.conf import settings
-from .models import Document
 from .forms import DocumentForm
 from django import template
 register = template.Library()
@@ -24,6 +23,18 @@ class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = User
         fields = ("username", "email", "password1", "password2")
+        
+    def clean_username(self):
+        username = self.cleaned_data.get("username")
+        if User.objects.filter(username=username).exists():
+            raise ValidationError("El nombre de usuario ya existe. Por favor, elige otro.")
+        return username
+    
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if User.objects.filter(email=email).exists():
+            raise ValidationError("El correo electrónico ya está registrado. Por favor, elige otro.")
+        return email
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -42,7 +53,6 @@ def signup(request):
                 backend = EmailBackend()
                 authenticated_user = backend.authenticate(request, username=user.email, password=form.cleaned_data['password1'])
                 if authenticated_user is not None:
-                   
                     return redirect('signin')
                 else:
                     return render(request, 'signup.html', {'form': form, 'error_message': 'No se pudo autenticar al usuario.'})
@@ -80,15 +90,9 @@ def signin(request):
                 login(request, user)
                 return redirect('document_list')
             else:
-                return render(request, 'signin.html', {
-                    'form': form,
-                    'error': 'Correo electrónico o contraseña incorrectos'
-                })
+                messages.error(request, "Correo electronico o contraseña incorrecta.")
         else:
-            return render(request, 'signin.html', {
-                'form': form,
-                'error': 'Correo electrónico o contraseña incorrectos'
-            })
+            messages.error(request, "Correo electronico o contraseña incorrecta.")
     else:
         form = AuthenticationForm()
 
@@ -98,21 +102,23 @@ def document_preview(request, document_id):
     document = get_object_or_404(Document, pk=document_id)
     return render(request, 'document_preview.html', {'document': document})
         
-@login_required   
+@login_required
 def assign_approver(request, document_id):
     document = get_object_or_404(Document, pk=document_id)
-
+    
     if request.method == 'POST':
         form = DocumentForm(request.POST, instance=document)
+        print("form: ", form)
         if form.is_valid():
             document = form.save(commit=False)
             document.approver = form.cleaned_data['approver']
+            print("document.approver: ", document.approver)
             document.save()
             return redirect('document_list')
     else:
         form = DocumentForm(instance=document)
 
-    return render(request, 'assign_approver.html', {'form': form, 'document': document})
+    return render(request, 'document_list.html', {'form': form, 'document': document})
 
 @login_required
 def approve_document(request, document_id):
@@ -124,13 +130,11 @@ def approve_document(request, document_id):
         if approval_status == 'approve':
             document.approved = True
             document.rejected = False
-            document.approval_message = 'Documento aprobado exitosamente.'
+            messages.success(request, "Documento aprobado exitosamente.")
         elif approval_status == 'reject':
             document.approved = False
             document.rejected = True
-            print(document.rejected)
-            print(document)
-            document.approval_message = 'Documento rechazado.'
+            messages.error(request, "Documento rechazado.")
         document.save()
         
     if request.user.is_superuser:
@@ -142,61 +146,60 @@ def approve_document(request, document_id):
 def document_list(request):
     
     documents = Document.objects.filter(uploaded_by=request.user)
-    print("Documentos a usuario:", documents)
-     
     documentsAssigned = Document.objects.filter(approver=request.user)
-    print("Documentos a revisar:", documentsAssigned)
+    
+    documentsAssigned = Document.objects.filter(
+        approver=request.user,
+        approved__isnull=True,
+        rejected__isnull=True 
+    )
     
     context = {
         'documentsAssigned': documentsAssigned,
         'documents': documents,
     }
-
     return render(request, 'document_list.html', context)
 
 @login_required
 def document_upload(request):
     if request.method == 'POST':
-        form = DocumentForm(request.POST, request.FILES)
+        form = DocumentForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             document = form.save(commit=False)
             document.uploaded_by = request.user
             document.approver = form.cleaned_data['approver']
             document.save()
+            messages.success(request, "Documento subido exitosamente.")
             return redirect('document_list')
     else:
-        form = DocumentForm()
+        form = DocumentForm(user=request.user)
     return render(request, 'document_upload.html', {'form': form})
 
 @login_required
 def documents_for_approver(request, approver_id):
     approver = get_object_or_404(User, pk=approver_id)
+    print("approver", approver)
     documents = Document.objects.filter(approver=approver, approved=False, rejected=False)
-    return render(request, 'documents_for_approver.html', {'documents': documents, 'approver': approver})
+    return render(request, 'document_list.html', {'documents': documents, 'approver': approver})
 
 @login_required
 def document_edit(request, pk):
     document = get_object_or_404(Document, pk=pk)
     
-    if document.uploaded_by != request.user:
-        messages.error(request, "No tienes permiso para editar este documento.")
-        return redirect('document_list')
     if request.method == 'POST':
-        form = DocumentForm(request.POST, request.FILES, instance=document)
+        form = DocumentForm(request.POST, request.FILES, instance=document, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, "Documento actualizado correctamente.")
             return redirect('document_list')
     else:
-        form = DocumentForm(instance=document)
+        form = DocumentForm(instance=document, user=request.user)
     return render(request, 'document_edit.html', {'form': form})
 
 @login_required
 def document_delete(request, pk):
     document = get_object_or_404(Document, pk=pk)
-    if request.user != document.uploaded_by:
-        messages.error(request, "No tienes permiso para eliminar este documento.")
-        return redirect('document_list')
+
     if request.method == 'POST':
         document.delete()
         messages.success(request, "Documento eliminado correctamente.")

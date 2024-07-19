@@ -31,7 +31,6 @@ urlpatterns = [
     path('edit/<int:pk>/', views.document_edit, name='document_edit'),
     path('delete/<int:pk>/', views.document_delete, name='document_delete'),
     path('preview/<int:document_id>/', views.document_preview, name='document_preview'),
-    path('documents/', views.document_list, name='document_list'),
     path('approve/<int:document_id>/', views.approve_document, name='approve_document'),
 ]
 

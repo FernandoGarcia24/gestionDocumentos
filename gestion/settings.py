@@ -96,8 +96,8 @@ DATABASES = {
 
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',  # Backend predeterminado
-    'registro.backends.EmailBackend',             # Tu backend personalizado
+    'django.contrib.auth.backends.ModelBackend',  
+    'registro.backends.EmailBackend',
 ]
 
 

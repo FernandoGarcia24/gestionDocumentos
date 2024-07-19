@@ -7,12 +7,8 @@
             <div class="card">
                 <div class="card-body">
                     <h1 class="card-title text-center mb-4">Iniciar Sesión</h1>
-                    
-                    {% if error %}
-                    <div id="error-message" class="alert alert-danger">
-                        <p>{{ error }}</p>
-                    </div>
-                    {% endif %}
+
+                    {% include '_messages.html' %}
                    
                     <form method="post" class="needs-validation">
                         {% csrf_token %}
